@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Variables Mastery Quest</title>
+<style>
+  :root {
+    --bg:#f7f8fb; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
+    --border:#e5e7eb; --good:#166534; --bad:#991b1b; --accent:#2563eb;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
+  .wrap { max-width:900px; margin:0 auto; padding:24px; }
+  .hero { text-align:center; margin-bottom:20px; }
+  h1 { margin:0 0 8px; font-size:2.2rem; }
+  .subtitle { color:var(--muted); }
+  .progress-shell { height:18px; background:#e5e7eb; border-radius:999px; overflow:hidden; margin:18px 0; }
+  .progress-bar { height:100%; background:var(--accent); width:0%; transition:.25s; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:18px; box-shadow:0 4px 12px rgba(0,0,0,.04); }
+  .locked { opacity:.55; }
+  button { border:0; border-radius:12px; padding:12px 16px; font-size:1rem; cursor:pointer; }
+  .primary { background:var(--accent); color:white; }
+  .secondary { background:#e5e7eb; color:#111827; }
+  .choice { width:100%; text-align:left; margin:8px 0; background:#f3f4f6; }
+  .choice:hover { background:#e5e7eb; }
+  .choice.selected { outline:3px solid #93c5fd; background:#dbeafe; }
+  .feedback { margin-top:12px; padding:12px; border-radius:10px; font-weight:700; }
+  .correct { background:#dcfce7; color:var(--good); }
+  .incorrect { background:#fee2e2; color:var(--bad); }
+  .meta { display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:.95rem; margin-bottom:12px; }
+  .hidden { display:none !important; }
+  .center { text-align:center; }
+  .big { font-size:3rem; }
+  .small { font-size:.92rem; color:var(--muted); }
+  .badge { display:inline-block; padding:7px 10px; border-radius:999px; background:#eef2ff; margin:4px; font-weight:700; }
+  .footer { margin-top:20px; text-align:center; color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>🧪 Variables Mastery Quest</h1>
+    <div class="subtitle">Master the basics before moving on. Score 80% or better to unlock the next level.</div>
+    <div class="progress-shell"><div id="overallProgress" class="progress-bar"></div></div>
+  </div>
+
+  <section id="homeScreen">
+    <div class="grid" id="levelGrid"></div>
+    <div class="card" style="margin-top:14px;">
+      <div><strong>Your Progress</strong></div>
+      <div id="badgeArea" style="margin-top:8px;"></div>
+      <div style="margin-top:12px;"><button class="secondary" onclick="resetProgress()">Reset Progress</button></div>
+    </div>
+  </section>
+
+  <section id="quizScreen" class="hidden">
+    <div class="card">
+      <div class="meta">
+        <span id="levelLabel"></span>
+        <span id="questionCount"></span>
+        <span id="scoreLive"></span>
+      </div>
+      <h2 id="questionText"></h2>
+      <div id="choices"></div>
+      <div id="feedback"></div>
+      <div style="margin-top:16px; display:flex; gap:10px;">
+        <button id="submitBtn" class="primary" onclick="submitAnswer()">Submit Answer</button>
+        <button id="nextBtn" class="primary hidden" onclick="nextQuestion()">Next Question</button>
+        <button class="secondary" onclick="goHome()">Exit Level</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="resultScreen" class="hidden">
+    <div class="card center">
+      <div id="resultIcon" class="big"></div>
+      <h2 id="resultTitle"></h2>
+      <p id="resultText"></p>
+      <div id="resultButtons"></div>
+    </div>
+  </section>
+
+  <div class="footer">Progress is saved on this browser/device.</div>
+</div>
+
+<script>
+const PASS = 0.80;
+const QUESTIONS_PER_ATTEMPT = 7;
+
+const levels = [
+  {
+    id:1,
+    title:'Level 1 — Variable Rookie',
+    skill:'Identify independent and dependent variables',
+    questions:[
+      {q:'A student changes how long a glow stick is kept in warm water and measures how brightly it glows. What is the independent variable?', a:['Glow brightness','Time in warm water','Brand of glow stick','Room lighting'], c:1, e:'The independent variable is what the student deliberately changes: the time in warm water.'},
+      {q:'A student changes the width of a parachute canopy and measures how long a small figure takes to reach the floor. What is the dependent variable?', a:['Canopy width','Drop height','Time to reach the floor','Mass of the figure'], c:2, e:'The dependent variable is the measured outcome: the fall time.'},
+      {q:'A student changes the number of rubber bands powering a model propeller and measures how many centimeters the model travels. What is the independent variable?', a:['Distance traveled','Number of rubber bands','Model mass','Floor surface'], c:1, e:'The number of rubber bands is the factor being changed.'},
+      {q:'A student changes the amount of dish soap mixed into bubble solution and measures the average diameter of the bubbles. What is the dependent variable?', a:['Soap amount','Bubble diameter','Type of measuring tool','Container size'], c:1, e:'Bubble diameter is what is measured.'},
+      {q:'A student changes the number of layers in a homemade soundproof box and records the sound level outside the box. What is the independent variable?', a:['Sound level','Number of layers','Speaker volume','Distance from speaker'], c:1, e:'The number of soundproofing layers is deliberately changed.'},
+      {q:'A student changes the angle of a flashlight shining on a solar cell and measures the electrical output. What is the dependent variable?', a:['Flashlight angle','Electrical output','Solar cell type','Distance to the flashlight'], c:1, e:'Electrical output is the response being measured.'},
+      {q:'A student changes the number of holes in the lid of a model greenhouse and measures the temperature inside after 20 minutes. What is the independent variable?', a:['Inside temperature','Number of holes','Time measured','Thermometer type'], c:1, e:'The number of holes is the factor the student changes.'},
+      {q:'A student changes the mass attached to a spring and measures how far the spring stretches. What is the dependent variable?', a:['Attached mass','Spring stretch','Spring type','Starting length'], c:1, e:'Spring stretch is the measured result.'},
+      {q:'A student changes the concentration of food coloring in water and measures how much light passes through the solution. What is the independent variable?', a:['Light transmitted','Food-coloring concentration','Cup shape','Light sensor'], c:1, e:'The concentration of food coloring is what is changed.'},
+      {q:'A student changes the texture of a glove surface and measures the maximum mass it can grip before an object slips. What is the dependent variable?', a:['Surface texture','Maximum mass held','Object shape','Hand position'], c:1, e:'The maximum mass held before slipping is the measured outcome.'},
+      {q:'A student changes the number of magnets stacked together and measures the distance from which they can attract a paper clip. What is the independent variable?', a:['Attraction distance','Number of magnets','Paper clip size','Ruler length'], c:1, e:'The number of magnets is deliberately changed.'},
+      {q:'A student changes the amount of baking soda in a sealed reaction bag and measures how much the bag expands. What is the dependent variable?', a:['Baking soda amount','Bag expansion','Bag brand','Starting air temperature'], c:1, e:'Bag expansion is the response that is measured.'}
+    ]
+  },
+  {
+    id:2,
+    title:'Level 2 — Variable Detective',
+    skill:'Identify IV, DV, constants, and control groups',
+    questions:[
+      {q:'A student tests how the number of fan blades affects the amount of air moved. Each fan uses the same motor and runs for the same time. What is one constant?', a:['Number of blades','Amount of air moved','Motor used','Airflow result'], c:2, e:'The motor is kept the same, so it is a constant.'},
+      {q:'A class tests whether adding insulation to a lunch container changes how quickly ice melts. One container has no insulation. What is the control group?', a:['The container with the thickest insulation','The container with no insulation','The melted ice','The thermometer'], c:1, e:'The no-insulation container provides the baseline for comparison.'},
+      {q:'A student changes the length of a pendulum and measures the time for 10 swings. Which factor should stay constant?', a:['Pendulum length','Time for 10 swings','Mass of the pendulum bob','Measured period'], c:2, e:'The bob mass should stay the same while pendulum length changes.'},
+      {q:'Students test whether a protective coating slows apple browning. One apple slice receives no coating. That slice is the...', a:['Dependent variable','Control group','Independent variable','Constant'], c:1, e:'The untreated slice is the control used for comparison.'},
+      {q:'A student tests different shoe-sole patterns on the same wet surface and measures stopping distance. What is a constant?', a:['Sole pattern','Stopping distance','Wet surface used','Grip result'], c:2, e:'Using the same wet surface helps make the comparison fair.'},
+      {q:'A student changes the thickness of an aluminum foil boat and measures the number of washers it can hold before sinking. Which pairing is correct?', a:['IV = washers held; DV = foil thickness','IV = foil thickness; DV = washers held','IV = water depth; DV = foil thickness','IV = boat shape; DV = water temperature'], c:1, e:'Foil thickness is changed, while carrying capacity is measured.'},
+      {q:'A student tests different knot types using equal lengths of the same rope. The rope material and rope length are...', a:['Independent variables','Dependent variables','Constants','Control groups'], c:2, e:'Factors deliberately kept the same are constants.'},
+      {q:'A class tests whether a reflective cover changes how hot a model house becomes in sunlight. One model house has no reflective cover. What is its role?', a:['Dependent variable','Control group','Independent variable','Repeated trial'], c:1, e:'The uncovered model is the baseline control.'},
+      {q:'A student changes the number of coils of wire around a nail and measures how many metal clips the electromagnet can lift. What is the dependent variable?', a:['Number of wire coils','Number of clips lifted','Battery type','Nail size'], c:1, e:'The number of clips lifted is the measured response.'},
+      {q:'A student tests different helmet-padding materials by dropping identical model heads from the same height. Why keep drop height the same?', a:['To create another independent variable','To make the comparison fair','To guarantee every result is identical','To make the padding the control group'], c:1, e:'Keeping drop height constant helps isolate the effect of padding material.'},
+      {q:'A student changes the amount of yeast in identical bottles and measures the volume of gas produced. What is the independent variable?', a:['Gas volume','Yeast amount','Bottle size','Measurement time'], c:1, e:'Yeast amount is the factor deliberately changed.'},
+      {q:'A student tests whether a wax coating reduces water loss from fruit. What would be the best control?', a:['Fruit with twice as much wax','Fruit with no wax coating','A different type of fruit','Fruit kept at a different temperature'], c:1, e:'An untreated fruit provides the best baseline.'}
+    ]
+  },
+  {
+    id:3,
+    title:'Level 3 — Experiment Investigator',
+    skill:'Analyze experimental scenarios and spot design problems',
+    questions:[
+      {q:'A student tests whether parachute material affects fall time, but each parachute is also a different size. What is the main problem?', a:['There is no dependent variable','More than one factor is changing','Fall time cannot be measured','The experiment has too many trials'], c:1, e:'Both material and size change, so it is unclear which caused any difference.'},
+      {q:'A class compares how much heat two travel mugs lose, but one mug starts at 95°C and the other starts at 70°C. Which change would most improve the test?', a:['Use different liquids','Start both mugs at the same temperature','Measure only one mug','Use different thermometers'], c:1, e:'Starting temperature should be controlled so mug design is the main difference.'},
+      {q:'A student claims thicker guitar strings create lower pitches after testing only one thick string and one thin string. What would best strengthen the evidence?', a:['Use several strings of each thickness and repeat the measurements','Change string length during every trial','Use different instruments for each string','Measure volume instead of pitch'], c:0, e:'Repeated trials with multiple samples make the evidence more reliable.'},
+      {q:'Students test which material best blocks a wireless signal. They wrap the same device in different materials but stand at different distances from the router each time. Why is the conclusion weak?', a:['Signal strength is not measurable','Distance is an uncontrolled variable','Material cannot be an independent variable','A router cannot be used in an experiment'], c:1, e:'Changing distance could affect signal strength independently of the wrapping material.'},
+      {q:'A student compares three bicycle reflector designs and records brightness using the same light source. Which data would directly answer the question of which reflector is brightest?', a:['Mass of each reflector','Measured reflected-light intensity','Price of each reflector','Color preference of students'], c:1, e:'Reflected-light intensity directly measures brightness.'},
+      {q:'A student tests whether adding fins helps a model rocket stay stable. The finned rocket is launched on a calm day, while the no-fin rocket is launched on a windy day. What should be controlled?', a:['Weather conditions','Whether fins are present','Flight stability','Final conclusion'], c:0, e:'Weather should be similar so the effect of fins can be compared fairly.'},
+      {q:'A student tests whether salt concentration changes how well an egg floats, but uses eggs of very different sizes. What is the best improvement?', a:['Use eggs that are similar in size and mass','Use a different container for each salt level','Change water temperature too','Use only one salt concentration'], c:0, e:'Similar eggs reduce a possible confounding factor.'},
+      {q:'A class tests sound-absorbing wall materials. Why would measuring the background noise before each trial improve the experiment?', a:['It creates a second independent variable','It helps check that starting conditions are comparable','It guarantees the material will work','It eliminates the need for repeated trials'], c:1, e:'Checking background noise helps ensure each trial begins under similar conditions.'},
+      {q:'A student tests three water-filter designs but pours 100 mL through one filter, 300 mL through another, and 500 mL through the third. What is the most important fix?', a:['Use the same water volume for every filter','Use different pollutants in every trial','Remove the filter material','Measure only how fast the water pours'], c:0, e:'Water volume should be controlled when comparing filter designs.'},
+      {q:'An experiment tests whether the color of a roof affects the temperature inside a model building. Which result would best support the claim that a lighter roof keeps the building cooler?', a:['The light-roof model has a lower internal temperature under the same conditions','The light-roof model is larger','The dark roof uses a different material','The light roof is measured at night and the dark roof at noon'], c:0, e:'A lower temperature under matching conditions directly supports the claim.'},
+      {q:'A student tests how wheel diameter affects the distance a wind-up car travels, but winds the car a different number of turns each trial. What type of problem is this?', a:['An uncontrolled variable','A missing dependent variable','A control group error only','A measurement unit error only'], c:0, e:'Different wind-up amounts introduce another changing factor.'},
+      {q:'A student repeats a paper-strength test six times and gets nearly the same result each time. What does this most strongly suggest?', a:['The results are reliable','The hypothesis is automatically proven','There are no variables','The experiment needs no constants'], c:0, e:'Consistent repeated results increase confidence in reliability.'}
+    ]
+  },
+  {
+    id:4,
+    title:'Level 4 — Experimental Design Master',
+    skill:'Fix flawed experiments and justify scientific decisions',
+    questions:[
+      {q:'A student wants to determine whether tread depth affects how far a model tire slides before stopping. Which design is strongest?', a:['Use identical tires with different tread depths on the same surface at the same starting speed','Use different tire sizes, surfaces, and starting speeds','Use one tire and estimate the result','Change tread depth and tire mass together'], c:0, e:'A strong test changes tread depth while controlling the other major factors.'},
+      {q:'Two insulated boxes are compared for how long they keep an ice pack cold. One box is opened every five minutes and the other stays closed. What is the strongest conclusion?', a:['The better box is whichever stays colder','The test cannot isolate insulation quality because opening frequency also changed','Opening the box has no effect','The colder box must have thicker walls'], c:1, e:'Opening frequency is a confounding variable, so insulation alone cannot explain the result.'},
+      {q:'Why would a student randomly assign identical seedlings to different treatment groups?', a:['To reduce bias in how the groups are formed','To make the independent variable disappear','To guarantee the hypothesis is supported','To avoid collecting data'], c:0, e:'Random assignment helps reduce systematic bias between groups.'},
+      {q:'A student tests three thermal-pack designs. Which evidence would best support choosing one design?', a:['It looked the most professional','It maintained the target temperature longest across repeated controlled trials','It was the favorite color','It was tested only once but had the highest reading'], c:1, e:'Repeated controlled measurements provide stronger evidence than appearance or a single trial.'},
+      {q:'A class is testing how blade pitch affects a small wind turbine. Which change would most improve validity?', a:['Keep wind speed, blade material, and blade number constant while changing pitch','Change wind speed whenever pitch changes','Use a different generator for each blade pitch','Measure only which turbine looks fastest'], c:0, e:'Controlling the other variables makes blade pitch the main tested factor.'},
+      {q:'A student gets one extremely high value in a set of eight repeated measurements. What is the best scientific response?', a:['Erase it immediately','Check for measurement or procedure errors and report how the value was handled','Change every other value to match it','Use only the unusual value'], c:1, e:'Unexpected values should be investigated and handled transparently, not automatically deleted.'},
+      {q:'A student concludes that a certain fabric is the best insulator after testing one sample of each fabric once. Which revision would most strengthen the conclusion?', a:['Repeat each fabric test several times using equal-sized samples','Use larger samples for only the preferred fabric','Change the heat source between tests','Ask classmates which fabric seems warmest'], c:0, e:'Repeated controlled trials reduce the effect of chance and improve reliability.'},
+      {q:'A student wants to test whether the spacing between cooling vents changes how quickly a device model loses heat. Which measurement is the best dependent variable?', a:['Vent spacing','Temperature decrease over a fixed time','Number of vents','Material color'], c:1, e:'Temperature decrease is the outcome that shows cooling performance.'},
+      {q:'Students compare two emergency-water-filter designs. Filter A removes more particles but takes twice as long. What should they do before deciding which design is better?', a:['Choose Filter A because one measurement is better','Compare both designs against the stated criteria and constraints','Choose the faster filter automatically','Ignore the test data and vote'], c:1, e:'Engineering decisions should use all relevant criteria and constraints, not a single result.'},
+      {q:'A class tests whether a textured phone case improves grip. Which setup provides the strongest control condition?', a:['The same phone model with a smooth case tested under the same conditions','A different phone with no case','The textured case tested on a wet surface only','A heavier phone with a smooth case'], c:0, e:'The same phone with a smooth case provides a fair baseline comparison.'},
+      {q:'A student finds that a redesigned reusable ice pack cools faster but warms up sooner. Which conclusion is most appropriate?', a:['The redesign is simply better','The redesign involves a trade-off that must be judged against the design criteria','The data are useless','Cooling rate is the only result that matters'], c:1, e:'Design solutions often involve trade-offs, so both performance measures should be considered.'},
+      {q:'A student wants to determine whether nozzle diameter affects the distance a water stream travels. Which procedure is best?', a:['Change nozzle diameter while keeping water pressure, launch angle, and starting height constant','Change nozzle diameter and water pressure together','Use a different hose and angle for every trial','Measure only the amount of water left in the tank'], c:0, e:'Keeping pressure, angle, and height constant isolates nozzle diameter as the tested variable.'}
+    ]
+  }
+];
+
+let state = JSON.parse(localStorage.getItem('variablesMasteryState') || '{"unlocked":1,"passed":{},"best":{}}');
+let currentLevel=null, currentQuestions=[], currentIndex=0, correct=0, selected=null, answered=false;
+
+function save(){ localStorage.setItem('variablesMasteryState', JSON.stringify(state)); }
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+function renderHome(){
+  const grid=document.getElementById('levelGrid'); grid.innerHTML='';
+  levels.forEach(l=>{
+    const locked=l.id>state.unlocked;
+    const best=state.best[l.id] ?? null;
+    const card=document.createElement('div'); card.className='card'+(locked?' locked':'');
+    card.innerHTML=`<h3>${locked?'🔒':'🔓'} ${l.title}</h3><p>${l.skill}</p><p class="small">Mastery target: 80%${best!==null?` • Best: ${best}%`:''}</p><button class="${locked?'secondary':'primary'}" ${locked?'disabled':''} onclick="startLevel(${l.id})">${state.passed[l.id]?'Play Again':'Start Level'}</button>`;
+    grid.appendChild(card);
+  });
+  const badges=[]; Object.keys(state.passed).forEach(id=>{ if(state.passed[id]) badges.push(`<span class="badge">🏅 Level ${id} Mastered</span>`); });
+  document.getElementById('badgeArea').innerHTML=badges.length?badges.join(''):'<span class="small">No levels mastered yet.</span>';
+  const pct=(Object.values(state.passed).filter(Boolean).length/levels.length)*100;
+  document.getElementById('overallProgress').style.width=pct+'%';
+}
+
+function startLevel(id){
+  currentLevel=levels.find(l=>l.id===id);
+  currentQuestions=shuffle(currentLevel.questions).slice(0,QUESTIONS_PER_ATTEMPT);
+  currentIndex=0; correct=0;
+  document.getElementById('homeScreen').classList.add('hidden');
+  document.getElementById('resultScreen').classList.add('hidden');
+  document.getElementById('quizScreen').classList.remove('hidden');
+  showQuestion();
+}
+
+function showQuestion(){
+  answered=false; selected=null;
+  const q=currentQuestions[currentIndex];
+  document.getElementById('levelLabel').textContent=currentLevel.title;
+  document.getElementById('questionCount').textContent=`Question ${currentIndex+1} of ${currentQuestions.length}`;
+  document.getElementById('scoreLive').textContent=`Correct: ${correct}`;
+  document.getElementById('questionText').textContent=q.q;
+  const choices=document.getElementById('choices'); choices.innerHTML='';
+  q.a.forEach((text,i)=>{
+    const b=document.createElement('button'); b.className='choice'; b.textContent=text;
+    b.onclick=()=>{ if(answered) return; selected=i; [...choices.children].forEach(x=>x.classList.remove('selected')); b.classList.add('selected'); };
+    choices.appendChild(b);
+  });
+  document.getElementById('feedback').innerHTML='';
+  document.getElementById('submitBtn').classList.remove('hidden');
+  document.getElementById('nextBtn').classList.add('hidden');
+}
+
+function submitAnswer(){
+  if(selected===null){ alert('Choose an answer first.'); return; }
+  answered=true;
+  const q=currentQuestions[currentIndex];
+  const isCorrect=selected===q.c;
+  if(isCorrect) correct++;
+  const fb=document.getElementById('feedback');
+  fb.className='feedback '+(isCorrect?'correct':'incorrect');
+  fb.innerHTML=(isCorrect?'✅ Correct! ':'❌ Not quite. ')+q.e;
+  document.getElementById('scoreLive').textContent=`Correct: ${correct}`;
+  document.getElementById('submitBtn').classList.add('hidden');
+  document.getElementById('nextBtn').classList.remove('hidden');
+}
+
+function nextQuestion(){
+  currentIndex++;
+  if(currentIndex>=currentQuestions.length) finishLevel(); else showQuestion();
+}
+
+function finishLevel(){
+  const pct=Math.round((correct/currentQuestions.length)*100);
+  state.best[currentLevel.id]=Math.max(state.best[currentLevel.id]||0,pct);
+  const passed=pct>=PASS*100;
+  if(passed){
+    state.passed[currentLevel.id]=true;
+    if(currentLevel.id<levels.length) state.unlocked=Math.max(state.unlocked,currentLevel.id+1);
+  }
+  save();
+  document.getElementById('quizScreen').classList.add('hidden');
+  document.getElementById('resultScreen').classList.remove('hidden');
+  const last=currentLevel.id===levels.length;
+  document.getElementById('resultIcon').textContent=passed?(last?'🏆':'🎉'):'🔁';
+  document.getElementById('resultTitle').textContent=passed?(last?'Variables Mastered!':'Level Up!'):'Try Again';
+  document.getElementById('resultText').textContent=passed?`You scored ${pct}%. ${last?'You completed all four levels!':'The next level is now unlocked.'}`:`You scored ${pct}%. You need at least 80% to advance.`;
+  const btns=document.getElementById('resultButtons');
+  btns.innerHTML=`<button class="primary" onclick="${passed&&!last?`startLevel(${currentLevel.id+1})`:`startLevel(${currentLevel.id})`}">${passed&&!last?'Continue to Next Level':'Play Again'}</button> <button class="secondary" onclick="goHome()">Back to Levels</button>`;
+  renderHome();
+}
+
+function goHome(){
+  document.getElementById('quizScreen').classList.add('hidden');
+  document.getElementById('resultScreen').classList.add('hidden');
+  document.getElementById('homeScreen').classList.remove('hidden');
+  renderHome();
+}
+
+function resetProgress(){
+  if(confirm('Reset all saved mastery progress on this device?')){
+    state={unlocked:1,passed:{},best:{}}; save(); renderHome();
+  }
+}
+
+renderHome();
+</script>
+</body>
+</html>
